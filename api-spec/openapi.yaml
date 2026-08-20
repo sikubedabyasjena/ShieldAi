@@ -1,0 +1,152 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: analysis
+    description: Threat analysis operations
+  - name: dashboard
+    description: Dashboard aggregates
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /analyze:
+    post:
+      operationId: analyzeThreat
+      tags: [analysis]
+      summary: Analyze suspicious content
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnalysisInput"
+      responses:
+        "200":
+          description: Security report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalysisResult"
+        "400":
+          description: Invalid content
+  /history:
+    get:
+      operationId: getAnalysisHistory
+      tags: [analysis]
+      summary: Get recent analysis history
+      responses:
+        "200":
+          description: Recent analyses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/HistoryItem"
+  /dashboard:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Get dashboard summary
+      responses:
+        "200":
+          description: Dashboard metrics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+    AnalysisInput:
+      type: object
+      required: [content, type]
+      properties:
+        content:
+          type: string
+          minLength: 1
+          maxLength: 20000
+        type:
+          type: string
+          enum: [text, url, email]
+    Indicator:
+      type: object
+      required: [label, detail, severity]
+      properties:
+        label: { type: string }
+        detail: { type: string }
+        severity: { type: string, enum: [low, medium, high, critical] }
+    AnalysisResult:
+      type: object
+      required: [id, riskScore, severity, classification, indicators, explanation, recommendations, type, createdAt]
+      properties:
+        id: { type: string }
+        riskScore: { type: number, minimum: 0, maximum: 100 }
+        severity: { type: string, enum: [low, medium, high, critical] }
+        classification: { type: string }
+        indicators:
+          type: array
+          items: { $ref: "#/components/schemas/Indicator" }
+        explanation: { type: string }
+        recommendations:
+          type: array
+          items: { type: string }
+        type: { type: string, enum: [text, url, email] }
+        createdAt: { type: string }
+    HistoryItem:
+      type: object
+      required: [id, type, preview, riskScore, severity, classification, createdAt]
+      properties:
+        id: { type: string }
+        type: { type: string }
+        preview: { type: string }
+        riskScore: { type: number }
+        severity: { type: string }
+        classification: { type: string }
+        createdAt: { type: string }
+    DashboardSummary:
+      type: object
+      required: [totalScans, threatsDetected, safeScans, highRiskScans, distribution, recent]
+      properties:
+        totalScans: { type: number }
+        threatsDetected: { type: number }
+        safeScans: { type: number }
+        highRiskScans: { type: number }
+        distribution:
+          type: object
+          required: [safe, low, medium, high, critical]
+          properties:
+            safe: { type: number }
+            low: { type: number }
+            medium: { type: number }
+            high: { type: number }
+            critical: { type: number }
+        recent:
+          type: array
+          items: { $ref: "#/components/schemas/HistoryItem" }
+
